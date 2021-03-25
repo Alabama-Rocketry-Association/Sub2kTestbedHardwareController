@@ -1,5 +1,5 @@
 import logging
-
+import platform
 global LOGGER 
 
 LOGGER = logging.getLogger()
@@ -23,3 +23,10 @@ def load_config(cfg = "config.yaml"):
 def init_logger(logfile:str, level = logging.INFO):
     logging.basicConfig(filename=logfile, level=level)
     logging.getLogger("init_logger").info(f"Logger initialized, logging to {logfile} @level={level}")
+
+def importGPIO():
+    #imports either for deploy or virtual testing
+    if platform.system().upper() == "WINDOWS":
+        from RPiSim.GPIO import GPIO
+    elif platform.system.upper() == "LINUX":
+        from Rpi.GPIO import GPIO #check actual import name

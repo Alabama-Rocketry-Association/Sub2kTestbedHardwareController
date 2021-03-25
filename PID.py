@@ -18,8 +18,8 @@ class PID(object):
         ep = self.k["P"] * err
         ed = self.k["D"] * (err - self.error) / self.ts
         self.ei += self.k["I"] * (self.ts * err)
-        self.error = err
-        return ep + ed + self.ei
+        self.error = ep + ed + self.ei
+        return self.error
 
     def evaluate(self, Input):
         if Input <= self.setvalue:

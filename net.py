@@ -12,83 +12,94 @@ def fcmd(mode):
 
 class NetworkClient(object):
 
+    """
+    NETWORK CLIENT FOR PC CONTROLLER
+
+    """
+
     def __init__(self, target):
         self.target = target
         self.RECV = Stack(maxsize=4096)
         self.SEND = Stack(maxsize=4096)
 
-    def cmd(self, CMD):
+    def send(self, data):
         """
         send a cmd object to send buffer
         :param CMD:
         :return:
         """
-        self.SEND.put_nowait(pickle.dumps(CMD))
+        self.SEND.put_nowait(pickle.dumps(data))
 
-    def data(self):
+    def recv(self):
         if not self.RECV.empty():
             return pickle.loads(self.RECV.get_nowait())
         else:
             return None
 
-    async def _data(self, websocket):
+    async def _recv(self, websocket):
         data = await websocket.recv()
         self.RECV.put_nowait(data)
 
-    async def _cmd(self, websocket):
+    async def _send(self, websocket):
         if not self.SEND.empty():
             if (s := self.SEND.get_nowait()) != None:
                 await websocket.send(s)
             else:
-                await asyncio.sleep(5)
+                #let recv finish first
+                await asyncio.sleep(0.1)
 
     async def clienthandler(self):
         while 1:
-            async with ws.connect(self.target) as websocket:
-                while 1:
-                    recv = asyncio.ensure_future(self._cmd(websocket))
-                    send = asyncio.ensure_future(self._data(websocket))
-                    done, pending = await asyncio.wait(
-                        [send, recv],
-                        return_when=asyncio.FIRST_COMPLETED
-                    )
-                    for task in pending:
-                        task.cancel()
-            await asyncio.sleep(5)
+            try:
+                async with ws.connect(self.target) as websocket:
+                    while 1:
+                        recv = asyncio.ensure_future(self._recv(websocket))
+                        send = asyncio.ensure_future(self._send(websocket))
+                        done, pending = await asyncio.wait(
+                            [send, recv],
+                            return_when=asyncio.FIRST_COMPLETED
+                        )
+                        for task in pending:
+                            task.cancel()
+            except BaseException as e:
+                LOGGER.debug(e)
+            #sleep for reconnection
+            await asyncio.sleep(0.5)
 
 
 class NetworkServer(object):
     """
-    sends data and listens for commands
+        HARDWARE CONTROLLER WEBSOCKETS SERVER for DATA AND COMMAND COMMUNICATION
     """
     def __init__(self):
         LOGGER.debug(f"{self}")
         self.SEND = Stack(maxsize=256)
-        self.CMD = Stack(maxsize=256)
+        self.RECV = Stack(maxsize=256)
 
-    def data(self, data):
+    def send(self, data):
         self.SEND.put_nowait(pickle.dumps(data))
 
-    def cmd(self):
-        if not self.CMD.empty():
-            return pickle.loads(self.CMD.get_nowait())
+    def recv(self):
+        if not self.RECV.empty():
+            return pickle.loads(self.RECV.get_nowait())
         return None
 
-    async def _cmd(self, websocket, path):
+    async def _recv(self, websocket, path):
         cmd = await websocket.recv()
-        self.CMD.put_nowait(cmd)
+        self.RECV.put_nowait(cmd)
 
-    async def _data(self, websocket, path):
+    async def _send(self, websocket, path):
         if not self.SEND.empty():
             if (s := self.SEND.get_nowait()) != None:
                 await websocket.send(s)
             else:
-                await asyncio.sleep(30)
+                #let _recv finish first if empty
+                await asyncio.sleep(0.5)
 
-    async def handler(self, websocket, path):
+    async def serverhandler(self, websocket, path):
         while 1:
-            recv = asyncio.ensure_future(self._cmd(websocket, path))
-            send = asyncio.ensure_future(self._data(websocket, path))
+            recv = asyncio.ensure_future(self._send(websocket, path))
+            send = asyncio.ensure_future(self._recv(websocket, path))
             done, pending = await asyncio.wait(
                 [send, recv],
                 return_when=asyncio.FIRST_COMPLETED
