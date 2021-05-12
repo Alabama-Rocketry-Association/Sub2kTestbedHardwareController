@@ -42,7 +42,8 @@ class NetworkClient(object):
 
     async def _send(self, websocket):
         if not self.SEND.empty():
-            if (s := self.SEND.get_nowait()) != None:
+            s = self.SEND.get_nowait()
+            if s != None:
                 await websocket.send(s)
             else:
                 #let recv finish first
@@ -90,7 +91,8 @@ class NetworkServer(object):
 
     async def _send(self, websocket, path):
         if not self.SEND.empty():
-            if (s := self.SEND.get_nowait()) != None:
+            s = self.SEND.get_nowait()
+            if s != None:
                 await websocket.send(s)
             else:
                 #let _recv finish first if empty
@@ -136,7 +138,7 @@ if __name__ == "__main__":
         l.run_until_complete(asyncio.gather(*[ws.serve(n.handler, "localhost", 4444), t.loop()]))
         l.run_forever()
     if v == "n":
-        uri = "ws://127.0.0.1:4444"
+        uri = "ws://raspberrypi.local:4444"
         n = NetworkClient(uri)
         t = Test(n, v)
         l = asyncio.get_event_loop()

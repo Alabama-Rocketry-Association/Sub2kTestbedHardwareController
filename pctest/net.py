@@ -136,7 +136,7 @@ if __name__ == "__main__":
         l.run_until_complete(asyncio.gather(*[ws.serve(n.handler, "127.0.0.1", 4444), t.loop()]))
         l.run_forever()
     if v == "n":
-        uri = "ws://raspberrypi.local:4444"
+        uri = "ws://[fe80::663b:75cb:92d5:f8d8]:4444"
         n = NetworkClient(uri)
         t = Test(n, v)
         l = asyncio.get_event_loop()

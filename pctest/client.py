@@ -1,7 +1,7 @@
 from net import NetworkClient
 
 
-CLIENT = NetworkClient("ws://[fe80::e5f3:6c22:dc77:e4bc]:4444")
+CLIENT = NetworkClient("ws://raspberrypi.local:4444")
 
 import asyncio 
 
